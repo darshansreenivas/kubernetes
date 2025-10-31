@@ -83,7 +83,17 @@ func testDeclarativeValidate(t *testing.T, apiVersion string) {
 				),
 			},
 		},
-		// TODO: add cases for missing name, bad topologyKeys, etc.
+		"missing name": {
+			input: mkValidCSINodeDriverNode(func(driver *storage.CSINodeDriver) {
+				driver.Name = ""
+			}),
+			expectedErrs: field.ErrorList{
+				field.Required(
+					field.NewPath("spec").Child("drivers").Index(0).Child("name"),
+					"",
+				),
+			},
+		},
 	}
 
 	for name, tc := range testCases {
@@ -99,11 +109,92 @@ func testDeclarativeValidate(t *testing.T, apiVersion string) {
 	}
 }
 
+func TestDeclarativeValidateUpdate(t *testing.T) {
+	apiVersions := []string{"v1beta1", "v1"} // CSINode existed as v1beta1 → v1
+	for _, apiVersion := range apiVersions {
+		t.Run(apiVersion, func(t *testing.T) {
+			testDeclarativeValidateUpdate(t, apiVersion)
+		})
+	}
+}
+
+func testDeclarativeValidateUpdate(t *testing.T, apiVersion string) {
+	// common path bits
+	driverPath := field.NewPath("spec").Child("drivers").Index(0)
+
+	testCases := map[string]struct {
+		oldObj       storage.CSINode
+		updateObj    storage.CSINode
+		expectedErrs field.ErrorList
+	}{
+		"invalid update (driver name changed)": {
+			oldObj: func() storage.CSINode {
+				obj := mkValidCSINodeDriverNode()
+				obj.ResourceVersion = "1"
+				return obj
+			}(),
+			updateObj: func() storage.CSINode {
+				obj := mkValidCSINodeDriverNode(func(d *storage.CSINodeDriver) {
+					d.Name = "io.kubernetes.storage.csi.other-driver"
+				})
+				obj.ResourceVersion = "1"
+				return obj
+			}(),
+			expectedErrs: field.ErrorList{
+				field.Forbidden(driverPath.Child("name"), "updates to driver name are forbidden"),
+			},
+		},
+		"invalid update (driver nodeID changed)": {
+			oldObj: func() storage.CSINode {
+				obj := mkValidCSINodeDriverNode(func(d *storage.CSINodeDriver) {
+					d.NodeID = "node-1"
+				})
+				obj.ResourceVersion = "1"
+				return obj
+			}(),
+			updateObj: func() storage.CSINode {
+				obj := mkValidCSINodeDriverNode(func(d *storage.CSINodeDriver) {
+					d.NodeID = "node-2"
+				})
+				obj.ResourceVersion = "1"
+				return obj
+			}(),
+			expectedErrs: field.ErrorList{
+				field.Forbidden(driverPath.Child("nodeID"), "updates to driver nodeID are forbidden"),
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			ctx := genericapirequest.WithRequestInfo(
+				genericapirequest.NewDefaultContext(),
+				&genericapirequest.RequestInfo{
+					APIPrefix:         "apis",
+					APIGroup:          "storage.k8s.io",
+					APIVersion:        apiVersion,
+					Resource:          "csinodes",
+					IsResourceRequest: true,
+					Verb:              "update",
+				},
+			)
+
+			apitesting.VerifyUpdateValidationEquivalence(
+				t,
+				ctx,
+				&tc.updateObj,
+				&tc.oldObj,
+				Strategy.ValidateUpdate,
+				tc.expectedErrs,
+			)
+		})
+	}
+}
+
 func mkValidCSINodeDriverNode(tweaks ...func(*storage.CSINodeDriver)) storage.CSINode {
 	driver := storage.CSINodeDriver{
-		Name:         "io.kubernetes.storage.csi.driver-1",
-		NodeID:       "node-1",
-		TopologyKeys: []string{"topology.kubernetes.io/zone"},
+		Name:   "io.kubernetes.storage.csi.driver-1",
+		NodeID: "node-1",
 	}
 	for _, tweak := range tweaks {
 		tweak(&driver)

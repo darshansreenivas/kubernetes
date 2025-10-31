@@ -98,7 +98,24 @@ func Validate_CSINode(ctx context.Context, op operation.Operation, fldPath *fiel
 // Validate_CSINodeDriver validates an instance of CSINodeDriver according
 // to declarative validation rules in the API schema.
 func Validate_CSINodeDriver(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *storagev1.CSINodeDriver) (errs field.ErrorList) {
-	// field storagev1.CSINodeDriver.Name has no validation
+	// field storagev1.CSINodeDriver.Name
+	errs = append(errs,
+		func(fldPath *field.Path, obj, oldObj *string) (errs field.ErrorList) {
+			// don't revalidate unchanged data
+			if op.Type == operation.Update && (obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj)) {
+				return nil
+			}
+			// call field-attached validations
+			earlyReturn := false
+			if e := validate.RequiredValue(ctx, op, fldPath, obj, oldObj); len(e) != 0 {
+				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if earlyReturn {
+				return // do not proceed
+			}
+			return
+		}(fldPath.Child("name"), &obj.Name, safe.Field(oldObj, func(oldObj *storagev1.CSINodeDriver) *string { return &oldObj.Name }))...)
 
 	// field storagev1.CSINodeDriver.NodeID
 	errs = append(errs,
