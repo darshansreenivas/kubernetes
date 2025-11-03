@@ -17,8 +17,6 @@ limitations under the License.
 package validation
 
 import (
-	"regexp"
-
 	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	unversionedvalidation "k8s.io/apimachinery/pkg/apis/meta/v1/validation"
 	"k8s.io/apimachinery/pkg/util/validation/field"
@@ -26,16 +24,6 @@ import (
 	corevalidation "k8s.io/kubernetes/pkg/apis/core/validation"
 	"k8s.io/kubernetes/pkg/apis/node"
 )
-
-// RuntimeClassNormalizationRules handles the structural differences between
-// v1alpha1 (handler in spec.runtimeHandler) and v1/v1beta1 (handler at top level)
-// for validation error paths.
-var RuntimeClassNormalizationRules = []field.NormalizationRule{
-	{
-		Regexp:      regexp.MustCompile(`^spec\.runtimeHandler$`),
-		Replacement: "handler",
-	},
-}
 
 // ValidateRuntimeClass validates the RuntimeClass
 func ValidateRuntimeClass(rc *node.RuntimeClass) field.ErrorList {
