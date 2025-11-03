@@ -19,7 +19,6 @@ package runtimeclass
 import (
 	"testing"
 
-	apivalidation "k8s.io/apimachinery/pkg/api/validation"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/util/validation/field"
 	genericapirequest "k8s.io/apiserver/pkg/endpoints/request"
@@ -32,7 +31,6 @@ func mkRuntimeClassHandlerOnly(tweaks ...func(*node.RuntimeClass)) node.RuntimeC
 		ObjectMeta: metav1.ObjectMeta{
 			Name: "myrc",
 		},
-		// valid dnsLabel
 		Handler: "runc",
 	}
 	for _, f := range tweaks {
@@ -40,9 +38,6 @@ func mkRuntimeClassHandlerOnly(tweaks ...func(*node.RuntimeClass)) node.RuntimeC
 	}
 	return rc
 }
-
-// buildInvalidHandlerErr builds the SAME error shape that the runtime is now emitting,
-// including Origin="format=k8s-short-name".
 func buildInvalidHandlerErr() field.ErrorList {
 	return field.ErrorList{
 		{
@@ -50,8 +45,7 @@ func buildInvalidHandlerErr() field.ErrorList {
 			Field:    "handler",
 			BadValue: "asads$asdas",
 			Detail:   "a lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-', and must start and end with an alphanumeric character (e.g. 'my-name',  or '123-abc', regex used for validation is '[a-z0-9]([-a-z0-9]*[a-z0-9])?')",
-			// this is what the actual validation is returning now:
-			Origin: "format=k8s-short-name",
+			Origin:   "format=k8s-short-name",
 		},
 	}
 }
@@ -73,11 +67,16 @@ func TestRuntimeClass_DeclarativeValidate_Handler(t *testing.T) {
 				obj          node.RuntimeClass
 				expectedErrs field.ErrorList
 			}{
+				"valid handler": {
+					obj: mkRuntimeClassHandlerOnly(func(rc *node.RuntimeClass) {
+						rc.Handler = "test"
+					}),
+					expectedErrs: field.ErrorList{},
+				},
 				"invalid handler dns label": {
 					obj: mkRuntimeClassHandlerOnly(func(rc *node.RuntimeClass) {
 						rc.Handler = "asads$asdas"
 					}),
-					// IMPORTANT: expectedErrs must match the real error INCLUDING Origin
 					expectedErrs: buildInvalidHandlerErr(),
 				},
 			}
@@ -121,18 +120,13 @@ func TestRuntimeClass_DeclarativeValidate_ImmutableHandler(t *testing.T) {
 						rc.Handler = "gvisor"
 					}),
 					expectedErrs: field.ErrorList{
-						field.Invalid(
-							field.NewPath("handler"),
-							"gvisor",
-							apivalidation.FieldImmutableErrorMsg,
-						),
+						field.Invalid(field.NewPath("handler"), "gvisor", "field is immutable").WithOrigin("immutable"),
 					},
 				},
 			}
 
 			for name, tc := range tests {
 				t.Run(name, func(t *testing.T) {
-					// make it UPDATE
 					tc.oldObj.ObjectMeta.Name = "myrc"
 					tc.newObj.ObjectMeta.Name = "myrc"
 					tc.oldObj.ObjectMeta.ResourceVersion = "1"

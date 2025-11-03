@@ -47,7 +47,7 @@ func ValidateRuntimeClass(rc *node.RuntimeClass) field.ErrorList {
 func ValidateRuntimeClassUpdate(new, old *node.RuntimeClass) field.ErrorList {
 	allErrs := apivalidation.ValidateObjectMetaUpdate(&new.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
 
-	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Handler, old.Handler, field.NewPath("handler"))...)
+	allErrs = append(allErrs, apivalidation.ValidateImmutableField(new.Handler, old.Handler, field.NewPath("handler"))...).MarkCoveredByDeclarative().WithOrigin("immutable")
 
 	return allErrs
 }
