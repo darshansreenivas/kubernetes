@@ -37,13 +37,14 @@ func TestDeclarativeValidate(t *testing.T) {
 }
 
 func testDeclarativeValidate(t *testing.T, apiVersion string) {
-	ctx := genericapirequest.WithRequestInfo(genericapirequest.NewDefaultContext(), &genericapirequest.RequestInfo{
-		APIGroup:          "storage.k8s.io",
-		APIVersion:        apiVersion,
-		Resource:          "volumeattachments",
-		IsResourceRequest: true,
-		Verb:              "create",
-	})
+	ctx := genericapirequest.WithRequestInfo(genericapirequest.NewDefaultContext(),
+		&genericapirequest.RequestInfo{
+			APIGroup:          "storage.k8s.io",
+			APIVersion:        apiVersion,
+			Resource:          "volumeattachments",
+			IsResourceRequest: true,
+			Verb:              "create",
+		})
 
 	testCases := map[string]struct {
 		input        storage.VolumeAttachment
@@ -77,7 +78,6 @@ func mkValidVolumeAttachment(tweaks ...func(obj *storage.VolumeAttachment)) stor
 			Name: "valid-volume-attachment",
 		},
 		Spec: storage.VolumeAttachmentSpec{
-			// Use an in-tree style qualified name to satisfy legacy validation rules.
 			Attacher: "example.com",
 			Source: storage.VolumeAttachmentSource{
 				PersistentVolumeName: &pvName,
