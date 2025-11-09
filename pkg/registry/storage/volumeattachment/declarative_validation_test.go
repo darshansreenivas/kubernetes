@@ -36,6 +36,16 @@ func TestDeclarativeValidate(t *testing.T) {
 	}
 }
 
+func TestDeclarativeValidateUpdate(t *testing.T) {
+	// VolumeAttachment existed as v1beta1 and v1
+	apiVersions := []string{"v1beta1", "v1"}
+	for _, apiVersion := range apiVersions {
+		t.Run(apiVersion, func(t *testing.T) {
+			testDeclarativeValidateUpdate(t, apiVersion)
+		})
+	}
+}
+
 func testDeclarativeValidate(t *testing.T, apiVersion string) {
 	ctx := genericapirequest.WithRequestInfo(genericapirequest.NewDefaultContext(),
 		&genericapirequest.RequestInfo{
@@ -61,12 +71,65 @@ func testDeclarativeValidate(t *testing.T, apiVersion string) {
 				field.Required(field.NewPath("spec", "attacher"), ""),
 			},
 		},
-		// TODO: Add more test cases (e.g., attacher format constraints) if desired.
+		"invalid nodeName (required)": {
+			input: mkValidVolumeAttachment(func(obj *storage.VolumeAttachment) {
+				obj.Spec.NodeName = ""
+			}),
+			expectedErrs: field.ErrorList{
+				field.Required(field.NewPath("spec", "nodeName"), ""),
+			},
+		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
 			apitesting.VerifyValidationEquivalence(t, ctx, &tc.input, Strategy.Validate, tc.expectedErrs)
+		})
+	}
+}
+
+func testDeclarativeValidateUpdate(t *testing.T, apiVersion string) {
+	ctx := genericapirequest.WithRequestInfo(genericapirequest.NewDefaultContext(),
+		&genericapirequest.RequestInfo{
+			APIGroup:          "storage.k8s.io",
+			APIVersion:        apiVersion,
+			Resource:          "volumeattachments",
+			IsResourceRequest: true,
+			Verb:              "update",
+		})
+
+	testCases := map[string]struct {
+		oldInput     storage.VolumeAttachment
+		newInput     storage.VolumeAttachment
+		expectedErrs field.ErrorList
+	}{
+		"valid update": {
+			oldInput: mkValidVolumeAttachment(),
+			newInput: mkValidVolumeAttachment(),
+		},
+		"immutable spec.attacher": {
+			oldInput: mkValidVolumeAttachment(),
+			newInput: mkValidVolumeAttachment(func(obj *storage.VolumeAttachment) {
+				obj.Spec.Attacher = "different.com"
+			}),
+			expectedErrs: field.ErrorList{
+				field.Invalid(field.NewPath("spec"), nil, "field is immutable"),
+			},
+		},
+		"immutable spec.nodeName": {
+			oldInput: mkValidVolumeAttachment(),
+			newInput: mkValidVolumeAttachment(func(obj *storage.VolumeAttachment) {
+				obj.Spec.NodeName = "different-node"
+			}),
+			expectedErrs: field.ErrorList{
+				field.Invalid(field.NewPath("spec"), nil, "field is immutable"),
+			},
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			apitesting.VerifyUpdateValidationEquivalence(t, ctx, &tc.newInput, &tc.oldInput, Strategy.ValidateUpdate, tc.expectedErrs)
 		})
 	}
 }
