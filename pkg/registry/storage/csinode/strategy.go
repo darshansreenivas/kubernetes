@@ -80,7 +80,9 @@ func (csiNodeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Obje
 	}
 
 	errorList := validation.ValidateCSINode(newCSINodeObj, validateOptions)
-	return append(errorList, validation.ValidateCSINodeUpdate(newCSINodeObj, oldCSINodeObj, validateOptions)...)
+	errorList = append(errorList, validation.ValidateCSINodeUpdate(newCSINodeObj, oldCSINodeObj, validateOptions)...)
+	return rest.ValidateDeclarativelyWithMigrationChecks(ctx, legacyscheme.Scheme, oldCSINodeObj, newCSINodeObj, errorList, operation.Update)
+
 }
 
 // WarningsOnUpdate returns warnings for the given update.
