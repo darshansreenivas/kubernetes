@@ -19,8 +19,11 @@ package csinode
 import (
 	"context"
 
+	"k8s.io/apimachinery/pkg/api/operation"
+
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/util/validation/field"
+	"k8s.io/apiserver/pkg/registry/rest"
 	"k8s.io/apiserver/pkg/storage/names"
 	"k8s.io/kubernetes/pkg/api/legacyscheme"
 	"k8s.io/kubernetes/pkg/apis/storage"
@@ -47,7 +50,12 @@ func (csiNodeStrategy) PrepareForCreate(ctx context.Context, obj runtime.Object)
 
 func (csiNodeStrategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	csiNode := obj.(*storage.CSINode)
-	return validation.ValidateCSINode(csiNode)
+	validateOptions := validation.CSINodeValidationOptions{
+		AllowLongNodeID: true,
+	}
+
+	errs := validation.ValidateCSINode(csiNode, validateOptions)
+	return rest.ValidateDeclarativelyWithMigrationChecks(ctx, legacyscheme.Scheme, obj, nil, errs, operation.Create)
 }
 
 // WarningsOnCreate returns warnings for the creation of the given object.
@@ -68,7 +76,12 @@ func (csiNodeStrategy) PrepareForUpdate(ctx context.Context, obj, old runtime.Ob
 func (csiNodeStrategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
 	newCSINodeObj := obj.(*storage.CSINode)
 	oldCSINodeObj := old.(*storage.CSINode)
-	return validation.ValidateCSINodeUpdate(newCSINodeObj, oldCSINodeObj)
+	validateOptions := validation.CSINodeValidationOptions{
+		AllowLongNodeID: true,
+	}
+
+	errorList := validation.ValidateCSINodeUpdate(newCSINodeObj, oldCSINodeObj, validateOptions)
+	return rest.ValidateDeclarativelyWithMigrationChecks(ctx, legacyscheme.Scheme, obj, old, errorList, operation.Update)
 }
 
 // WarningsOnUpdate returns warnings for the given update.
