@@ -822,6 +822,8 @@ message DeviceRequest {
   // Must be a DNS label.
   //
   // +required
+  // +required
+  // +k8s:required
   optional string name = 1;
 
   // Exactly specifies the details for a single request that must

@@ -847,6 +847,8 @@ type DeviceRequest struct {
 	// ResourceClaim.
 	//
 	// +required
+	// +required
+	// +k8s:required
 	Name string `json:"name" protobuf:"bytes,1,name=name"`
 
 	// DeviceClassName references a specific DeviceClass, which can define

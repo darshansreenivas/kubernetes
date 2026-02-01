@@ -946,7 +946,24 @@ func Validate_DeviceCounterConsumption(ctx context.Context, op operation.Operati
 // Validate_DeviceRequest validates an instance of DeviceRequest according
 // to declarative validation rules in the API schema.
 func Validate_DeviceRequest(ctx context.Context, op operation.Operation, fldPath *field.Path, obj, oldObj *resourcev1.DeviceRequest) (errs field.ErrorList) {
-	// field resourcev1.DeviceRequest.Name has no validation
+	// field resourcev1.DeviceRequest.Name
+	errs = append(errs,
+		func(fldPath *field.Path, obj, oldObj *string, oldValueCorrelated bool) (errs field.ErrorList) {
+			// don't revalidate unchanged data
+			if oldValueCorrelated && op.Type == operation.Update && (obj == oldObj || (obj != nil && oldObj != nil && *obj == *oldObj)) {
+				return nil
+			}
+			// call field-attached validations
+			earlyReturn := false
+			if e := validate.RequiredValue(ctx, op, fldPath, obj, oldObj); len(e) != 0 {
+				errs = append(errs, e...)
+				earlyReturn = true
+			}
+			if earlyReturn {
+				return // do not proceed
+			}
+			return
+		}(fldPath.Child("name"), &obj.Name, safe.Field(oldObj, func(oldObj *resourcev1.DeviceRequest) *string { return &oldObj.Name }), oldObj != nil)...)
 
 	// field resourcev1.DeviceRequest.Exactly
 	errs = append(errs,

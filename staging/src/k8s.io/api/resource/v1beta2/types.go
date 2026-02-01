@@ -844,6 +844,8 @@ type DeviceRequest struct {
 	// Must be a DNS label.
 	//
 	// +required
+	// +required
+	// +k8s:required
 	Name string `json:"name" protobuf:"bytes,1,name=name"`
 
 	// Exactly specifies the details for a single request that must

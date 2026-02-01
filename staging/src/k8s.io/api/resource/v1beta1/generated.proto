@@ -825,6 +825,8 @@ message DeviceRequest {
   // ResourceClaim.
   //
   // +required
+  // +required
+  // +k8s:required
   optional string name = 1;
 
   // DeviceClassName references a specific DeviceClass, which can define

@@ -225,7 +225,7 @@ func validateDeviceRequest(request resource.DeviceRequest, fldPath *field.Path, 
 
 	switch {
 	case numDeviceRequestType == 0:
-		allErrs = append(allErrs, field.Required(fldPath, "exactly one of `exactly` or `firstAvailable` is required"))
+		allErrs = append(allErrs, field.Required(fldPath, "exactly one of `exactly` or `firstAvailable` is required").MarkCoveredByDeclarative())
 	case numDeviceRequestType > 1:
 		allErrs = append(allErrs, field.Invalid(fldPath, nil, "exactly one of `exactly` or `firstAvailable` is required, but multiple fields are set"))
 	case hasFirstAvailable:
