@@ -646,6 +646,7 @@ type CSINodeDriver struct {
 	// refer to the node name using the ID that the storage system will
 	// understand, e.g. "nodeA" instead of "node1". This field is required.
 	// +required
+	// +required
 	NodeID string `json:"nodeID" protobuf:"bytes,2,opt,name=nodeID"`
 
 	// topologyKeys is the list of keys supported by the driver.
